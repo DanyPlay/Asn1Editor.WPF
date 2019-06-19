@@ -8,10 +8,23 @@ using SysadminsLV.Asn1Parser;
 
 namespace SysadminsLV.Asn1Editor.API.Utils {
     static class FileUtility {
-        static String GetRawText(String path) {
-            using (StreamReader sr = new StreamReader(path)) {
+        static String GetRawText(String path)
+        {
+            using (StreamReader sr = new StreamReader(path, System.Text.Encoding.UTF8))
+            {
                 return sr.ReadToEnd();
             }
+        }
+        static Byte[] GetRawBinary(String path)
+        {
+            FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+            BinaryReader br = new BinaryReader(fs);
+            FileInfo fileInfo = new FileInfo(path);
+            long length_sum = fileInfo.Length;
+            byte[] byte_Content2 = new byte[length_sum];
+            br.Read(byte_Content2, 0, (int)length_sum);
+
+            return byte_Content2;
         }
         static Boolean ValidateData(Byte tag) {
             //List<Byte> excludedTags = new List<Byte>(
@@ -45,8 +58,10 @@ namespace SysadminsLV.Asn1Editor.API.Utils {
                     ) {
                     return HexUtility.AnyToBinary(GetRawText(path));
                 }
+
+                bool bBinData = (buffer[0] == 0x30 && buffer[1] <= 0x84/*max DER size tag len*/);
                 Asn1Reader asn = new Asn1Reader(File.ReadAllBytes(path));
-                if (asn.TagLength == fileInfo.Length) {
+                if (bBinData && asn.TagLength <= fileInfo.Length) {
                     if (ValidateData(asn.Tag)) {
                         return asn.GetTagRawData();
                     }
